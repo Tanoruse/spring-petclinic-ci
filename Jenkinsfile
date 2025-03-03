@@ -1,43 +1,47 @@
 pipeline {
     agent any
 
+    // Trigger every 3 minutes on Monday (day-of-week 1)
     triggers {
-        cron('H/3 * * * 1')  // Every 3 minutes on Mondays
+        cron('H/3 * * * 1')
     }
 
     tools {
-        maven 'Maven 3'  // Matches your actual configured Maven tool name
+        maven 'maven3'  // Make sure your Jenkins Global Tool Configuration has Maven named 'maven3'
     }
 
     stages {
-        stage('Checkout') {
+        stage('Build') {
             steps {
-                checkout scm
+                // Use Maven Wrapper (mvnw) for cross-platform compatibility
+                bat './mvnw clean package'
             }
         }
-
-        stage('Build & Test') {
+        stage('Test with Jacoco') {
             steps {
-                bat './mvnw clean verify'  // Use bat instead of sh for Windows compatibility
+                // Use Maven Wrapper for tests + Jacoco report
+                bat './mvnw test jacoco:report'
             }
-        }
-
-        stage('Code Coverage - Jacoco') {
-            steps {
-                jacoco execPattern: '**/target/jacoco.exec'
-            }
-        }
-
-        stage('Archive Artifact') {
-            steps {
-                archiveArtifacts artifacts: '**/target/*.jar', fingerprint: true
+            post {
+                always {
+                    // Publish the Jacoco report as an HTML report in Jenkins
+                    publishHTML(target: [
+                        allowMissing: false,
+                        alwaysLinkToLastBuild: true,
+                        keepAll: true,
+                        reportDir: 'target/site/jacoco',
+                        reportFiles: 'index.html',
+                        reportName: "Jacoco Coverage Report"
+                    ])
+                }
             }
         }
     }
 
     post {
-        always {
-            junit '**/target/surefire-reports/*.xml'
+        success {
+            // Archive the generated artifact (e.g., jar file)
+            archiveArtifacts artifacts: 'target/*.jar', fingerprint: true
         }
     }
 }
