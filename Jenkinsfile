@@ -6,7 +6,7 @@ pipeline {
     }
 
     tools {
-        maven 'Maven 3'  // Make sure your Jenkins has a Maven tool installed called 'Maven 3'
+        maven 'Maven 3'  // Matches your actual configured Maven tool name
     }
 
     stages {
@@ -18,7 +18,7 @@ pipeline {
 
         stage('Build & Test') {
             steps {
-                sh './mvnw clean verify'
+                bat './mvnw clean verify'  // Use bat instead of sh for Windows compatibility
             }
         }
 
